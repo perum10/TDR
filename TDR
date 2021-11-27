@@ -1,0 +1,85 @@
+#define BLYNK_PRINT Serial
+#include <ESP8266WiFi.h>
+#include <BlynkSimpleEsp8266.h>
+const int triggerPin = 5;
+const int echo = 4;
+#include <DHT.h>
+long duration;
+int distance;
+#define DHTPIN 2  
+#define DHTTYPE DHT11 
+DHT dht(DHTPIN, DHTTYPE);
+
+char auth[] = "";
+char ssid[] = "";
+char pass[] = "";
+BlynkTimer timer;
+
+void sendSensor()
+{
+  float h = dht.readHumidity();
+  float t = dht.readTemperature(); // or dht.readTemperature(true) for Fahrenheit
+
+  if (isnan(h) || isnan(t)) {
+    Serial.println ("Failed to read from DHT sensor!");
+    return;
+  }
+
+  Blynk.virtualWrite(V7, h);
+  Blynk.virtualWrite(V6, t);
+}
+
+WidgetLED led1(V1);
+
+
+
+void setup(){
+   dht.begin();
+  Serial.begin(9600);
+  timer.setInterval(1000L, blinkLedWidget);
+  Blynk.begin(auth, ssid, pass);
+  pinMode(triggerPin, OUTPUT); // Sets the trigPin as an Output
+  pinMode(echo, INPUT); // Sets the echoPin as an Input
+   
+   
+
+  
+}
+
+void blinkLedWidget() 
+{
+  if (led1.getValue()) {
+    led1.off();
+    Serial.println("LED on V1: off");
+  } else {
+    led1.on();
+    Serial.println("LED on V1: on");
+    
+  }
+}
+
+void loop(){
+  Blynk.run();
+  digitalWrite(triggerPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(triggerPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(triggerPin, LOW);
+  duration = pulseIn(echo, HIGH);
+  distance= duration*0.034/2;
+  
+  Blynk.virtualWrite(V5, distance);
+  
+  if (distance >= 20){
+    Blynk.notify("ESP8266 Alert -> distance >= 20");
+      Blynk.email("", "", "");
+
+  
+    
+  }
+  Serial.print("Distance: ");
+  Serial.println(distance);
+  
+   Blynk.run();
+  timer.run();
+}
